@@ -1,0 +1,542 @@
+[
+  {
+    "id": 1,
+    "name": "Electrónica y Computación",
+    "subcategories": [
+      { "id": 101, "name": "Ordenadores y Portátiles" },
+      { "id": 102, "name": "Tablets y E-readers" },
+      { "id": 103, "name": "Componentes de PC" },
+      { "id": 104, "name": "Monitores y Pantallas" },
+      { "id": 105, "name": "Periféricos" },
+      { "id": 106, "name": "Almacenamiento" },
+      { "id": 107, "name": "Redes y Conectividad" },
+      { "id": 108, "name": "Impresoras y Escáneres" },
+      { "id": 109, "name": "Accesorios Electrónicos" },
+      { "id": 110, "name": "Domótica y Smart Home" },
+      { "id": 111, "name": "Dispositivos de Energía Sostenible" }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Electrodomésticos",
+    "subcategories": [
+      { "id": 201, "name": "Grandes Electrodomésticos" },
+      { "id": 202, "name": "Pequeños Electrodomésticos de Cocina" },
+      { "id": 203, "name": "Electrodomésticos de Clima" },
+      { "id": 204, "name": "Aspiradoras y Limpieza" },
+      { "id": 205, "name": "Planchado" },
+      { "id": 206, "name": "Electrodomésticos de Baño" },
+      { "id": 207, "name": "Electrodomésticos para el Cuidado Personal" },
+      { "id": 208, "name": "Purificadores y Humidificadores" },
+      { "id": 209, "name": "Electrodomésticos de Bajo Consumo" }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Telefonía y Comunicaciones",
+    "subcategories": [
+      { "id": 301, "name": "Smartphones" },
+      { "id": 302, "name": "Teléfonos Fijos" },
+      { "id": 303, "name": "Accesorios para Móviles" },
+      { "id": 304, "name": "Smartwatches y Wearables" },
+      { "id": 305, "name": "Tarjetas SIM y Planes" },
+      { "id": 306, "name": "Radios y Walkie-talkies" },
+      { "id": 307, "name": "Fax y Telefonía IP" },
+      { "id": 308, "name": "Dispositivos de Comunicación Satelital" },
+      { "id": 309, "name": "Accesorios Sostenibles para Dispositivos" }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Audio, Video y Fotografía",
+    "subcategories": [
+      { "id": 401, "name": "Televisores" },
+      { "id": 402, "name": "Equipos de Sonido" },
+      { "id": 403, "name": "Altavoces y Barras de Sonido" },
+      { "id": 404, "name": "Auriculares y Cascos" },
+      { "id": 405, "name": "Cámaras Fotográficas" },
+      { "id": 406, "name": "Videocámaras" },
+      { "id": 407, "name": "Accesorios Fotográficos" },
+      { "id": 408, "name": "Proyectores" },
+      { "id": 409, "name": "Reproductores Multimedia" },
+      { "id": 410, "name": "Drones con Cámara" },
+      { "id": 411, "name": "Equipos Audiovisuales de Bajo Consumo" }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Videojuegos y Entretenimiento Digital",
+    "subcategories": [
+      { "id": 501, "name": "Consolas" },
+      { "id": 502, "name": "Videojuegos" },
+      { "id": 503, "name": "Accesorios para Consolas" },
+      { "id": 504, "name": "Juegos para PC" },
+      { "id": 505, "name": "Realidad Virtual" },
+      { "id": 506, "name": "Streaming y Contenido Digital" },
+      { "id": 507, "name": "Tarjetas Prepago y Suscripciones" },
+      { "id": 508, "name": "Gaming PC y Equipamiento" },
+      { "id": 509, "name": "Retro Gaming" }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Moda y Accesorios",
+    "subcategories": [
+      { "id": 601, "name": "Ropa para Mujer" },
+      { "id": 602, "name": "Ropa para Hombre" },
+      { "id": 603, "name": "Ropa Infantil" },
+      { "id": 604, "name": "Calzado" },
+      { "id": 605, "name": "Bolsos y Mochilas" },
+      { "id": 606, "name": "Relojes" },
+      { "id": 607, "name": "Joyería y Bisutería" },
+      { "id": 608, "name": "Complementos" },
+      { "id": 609, "name": "Gafas y Lentes" },
+      { "id": 610, "name": "Ropa Deportiva" },
+      { "id": 611, "name": "Ropa Interior y Baño" },
+      { "id": 612, "name": "Moda Sostenible y Ecológica" },
+      { "id": 613, "name": "Accesorios de Materiales Reciclados" }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Belleza y Cuidado Personal",
+    "subcategories": [
+      { "id": 701, "name": "Maquillaje" },
+      { "id": 702, "name": "Cuidado Facial" },
+      { "id": 703, "name": "Cuidado Corporal" },
+      { "id": 704, "name": "Perfumes y Fragancias" },
+      { "id": 705, "name": "Cuidado del Cabello" },
+      { "id": 706, "name": "Manicura y Pedicura" },
+      { "id": 707, "name": "Afeitado y Depilación" },
+      { "id": 708, "name": "Higiene Personal" },
+      { "id": 709, "name": "Cosmética Natural" },
+      { "id": 710, "name": "Cuidado Dental" },
+      { "id": 711, "name": "Cosmética Ecológica y Sostenible" }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Salud y Bienestar",
+    "subcategories": [
+      { "id": 801, "name": "Medicamentos" },
+      { "id": 802, "name": "Suplementos y Vitaminas" },
+      { "id": 803, "name": "Primeros Auxilios" },
+      { "id": 804, "name": "Cuidado de la Salud en el Hogar" },
+      { "id": 805, "name": "Ortopedia y Movilidad" },
+      { "id": 806, "name": "Terapias Alternativas" },
+      { "id": 807, "name": "Control de Peso" },
+      { "id": 808, "name": "Equipamiento Médico Profesional" },
+      { "id": 809, "name": "Atención Especializada" },
+      { "id": 810, "name": "Audífonos y Salud Auditiva" },
+      { "id": 811, "name": "Suplementos Naturales y Ecológicos" }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Alimentos y Bebidas",
+    "subcategories": [
+      { "id": 901, "name": "Alimentos No Perecederos" },
+      { "id": 902, "name": "Snacks y Aperitivos" },
+      { "id": 903, "name": "Bebidas Alcohólicas" },
+      { "id": 904, "name": "Bebidas No Alcohólicas" },
+      { "id": 905, "name": "Frutería y Verdulería" },
+      { "id": 906, "name": "Carnicería" },
+      { "id": 907, "name": "Pescadería" },
+      { "id": 908, "name": "Charcutería y Embutidos" },
+      { "id": 909, "name": "Lácteos y Huevos" },
+      { "id": 910, "name": "Panadería y Repostería" },
+      { "id": 911, "name": "Congelados" },
+      { "id": 912, "name": "Productos Gourmet y Delicatessen" },
+      { "id": 913, "name": "Alimentación Especializada" },
+      { "id": 914, "name": "Aceites, Vinagres y Condimentos" },
+      { "id": 915, "name": "Desayuno y Cereales" },
+      { "id": 916, "name": "Alimentación Ecológica y Orgánica" },
+      { "id": 917, "name": "Productos Locales y de Proximidad" }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Hogar, Muebles y Decoración",
+    "subcategories": [
+      { "id": 1001, "name": "Muebles de Salón" },
+      { "id": 1002, "name": "Muebles de Dormitorio" },
+      { "id": 1003, "name": "Muebles de Cocina" },
+      { "id": 1004, "name": "Muebles de Oficina" },
+      { "id": 1005, "name": "Decoración e Interiorismo" },
+      { "id": 1006, "name": "Iluminación" },
+      { "id": 1007, "name": "Textiles del Hogar" },
+      { "id": 1008, "name": "Utensilios de Cocina" },
+      { "id": 1009, "name": "Vajilla y Cubertería" },
+      { "id": 1010, "name": "Organización y Almacenaje" },
+      { "id": 1011, "name": "Muebles de Materiales Sostenibles" },
+      { "id": 1012, "name": "Decoración Ecológica" }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Jardín y Exterior",
+    "subcategories": [
+      { "id": 1101, "name": "Muebles de Jardín" },
+      { "id": 1102, "name": "Herramientas de Jardinería" },
+      { "id": 1103, "name": "Plantas y Semillas" },
+      { "id": 1104, "name": "Piscinas y Accesorios" },
+      { "id": 1105, "name": "Barbacoas y Parrillas" },
+      { "id": 1106, "name": "Riego y Sistemas de Agua" },
+      { "id": 1107, "name": "Estructuras para Exterior" },
+      { "id": 1108, "name": "Decoración Exterior" },
+      { "id": 1109, "name": "Cercas y Vallas" },
+      { "id": 1110, "name": "Equipos de Mantenimiento Exterior" },
+      { "id": 1111, "name": "Huerto Urbano y Cultivo Ecológico" },
+      { "id": 1112, "name": "Compostaje y Gestión de Residuos" }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Herramientas y Construcción",
+    "subcategories": [
+      { "id": 1201, "name": "Herramientas Eléctricas" },
+      { "id": 1202, "name": "Herramientas Manuales" },
+      { "id": 1203, "name": "Pinturas y Tratamientos" },
+      { "id": 1204, "name": "Materiales de Construcción" },
+      { "id": 1205, "name": "Fontanería" },
+      { "id": 1206, "name": "Electricidad" },
+      { "id": 1207, "name": "Calefacción y Ventilación" },
+      { "id": 1208, "name": "Carpintería" },
+      { "id": 1209, "name": "Equipos de Seguridad Laboral" },
+      { "id": 1210, "name": "Escaleras y Andamios" },
+      { "id": 1211, "name": "Materiales de Construcción Sostenibles" },
+      { "id": 1212, "name": "Herramientas de Bajo Impacto Ambiental" }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Vehículos y Accesorios",
+    "subcategories": [
+      { "id": 1301, "name": "Automóviles Nuevos" },
+      { "id": 1302, "name": "Automóviles Usados" },
+      { "id": 1303, "name": "Motos" },
+      { "id": 1304, "name": "Repuestos y Recambios" },
+      { "id": 1305, "name": "Accesorios para Vehículos" },
+      { "id": 1306, "name": "Neumáticos y Llantas" },
+      { "id": 1307, "name": "Electrónica para Vehículos" },
+      { "id": 1308, "name": "Mantenimiento y Cuidado" },
+      { "id": 1309, "name": "Caravanas y Autocaravanas" },
+      { "id": 1310, "name": "Bicicletas y Ciclismo" },
+      { "id": 1311, "name": "Vehículos Eléctricos y Sostenibles" },
+      { "id": 1312, "name": "Movilidad Sostenible" }
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Deportes y Aire Libre",
+    "subcategories": [
+      { "id": 1401, "name": "Fitness y Musculación" },
+      { "id": 1402, "name": "Running y Atletismo" },
+      { "id": 1403, "name": "Ciclismo" },
+      { "id": 1404, "name": "Deportes de Equipo" },
+      { "id": 1405, "name": "Deportes Acuáticos" },
+      { "id": 1406, "name": "Camping y Montaña" },
+      { "id": 1407, "name": "Caza y Pesca" },
+      { "id": 1408, "name": "Esquí y Deportes de Invierno" },
+      { "id": 1409, "name": "Nutrición Deportiva" },
+      { "id": 1410, "name": "Ropa y Calzado Deportivo" },
+      { "id": 1411, "name": "Equipamiento Deportivo Sostenible" }
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Juguetes y Juegos",
+    "subcategories": [
+      { "id": 1501, "name": "Juguetes para Bebés e Infantil" },
+      { "id": 1502, "name": "Figuras de Acción y Muñecas" },
+      { "id": 1503, "name": "Juegos de Mesa y Cartas" },
+      { "id": 1504, "name": "Juegos Educativos" },
+      { "id": 1505, "name": "Construcción y Bloques" },
+      { "id": 1506, "name": "Juguetes Electrónicos" },
+      { "id": 1507, "name": "Peluches y Muñecos" },
+      { "id": 1508, "name": "Juegos al Aire Libre" },
+      { "id": 1509, "name": "Disfraces y Juego Simbólico" },
+      { "id": 1510, "name": "Juguetes Coleccionables" },
+      { "id": 1511, "name": "Juguetes Ecológicos y Sostenibles" }
+    ]
+  },
+  {
+    "id": 16,
+    "name": "Bebés y Maternidad",
+    "subcategories": [
+      { "id": 1601, "name": "Alimentación Infantil" },
+      { "id": 1602, "name": "Pañales y Cambiadores" },
+      { "id": 1603, "name": "Transporte" },
+      { "id": 1604, "name": "Ropa y Calzado para Bebés" },
+      { "id": 1605, "name": "Dormitorio de Bebé" },
+      { "id": 1606, "name": "Juguetes para Bebés" },
+      { "id": 1607, "name": "Higiene y Cuidado del Bebé" },
+      { "id": 1608, "name": "Lactancia y Alimentación" },
+      { "id": 1609, "name": "Seguridad Infantil" },
+      { "id": 1610, "name": "Embarazo y Maternidad" },
+      { "id": 1611, "name": "Productos Ecológicos para Bebés" }
+    ]
+  },
+  {
+    "id": 17,
+    "name": "Mascotas",
+    "subcategories": [
+      { "id": 1701, "name": "Alimentación para Perros" },
+      { "id": 1702, "name": "Alimentación para Gatos" },
+      { "id": 1703, "name": "Accesorios para Mascotas" },
+      { "id": 1704, "name": "Juguetes para Mascotas" },
+      { "id": 1705, "name": "Higiene y Salud Animal" },
+      { "id": 1706, "name": "Camas y Mobiliario" },
+      { "id": 1707, "name": "Jaulas y Transportines" },
+      { "id": 1708, "name": "Acuarios y Terrarios" },
+      { "id": 1709, "name": "Mascotas Pequeñas y Roedores" },
+      { "id": 1710, "name": "Artículos para Aves" },
+      { "id": 1711, "name": "Productos Ecológicos para Mascotas" }
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Libros y Educación",
+    "subcategories": [
+      { "id": 1801, "name": "Literatura y Ficción" },
+      { "id": 1802, "name": "No Ficción y Ensayo" },
+      { "id": 1803, "name": "Libros Infantiles y Juveniles" },
+      { "id": 1804, "name": "Libros de Texto" },
+      { "id": 1805, "name": "Material Didáctico" },
+      { "id": 1806, "name": "Material Escolar" },
+      { "id": 1807, "name": "Cursos y Formación" },
+      { "id": 1808, "name": "Libros Digitales y Audiolibros" },
+      { "id": 1809, "name": "Libros Especializados" },
+      { "id": 1810, "name": "Revistas y Publicaciones" },
+      { "id": 1811, "name": "Libros sobre Sostenibilidad y Ecología" }
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Música y Arte",
+    "subcategories": [
+      { "id": 1901, "name": "Instrumentos de Cuerda" },
+      { "id": 1902, "name": "Instrumentos de Viento" },
+      { "id": 1903, "name": "Instrumentos de Percusión" },
+      { "id": 1904, "name": "Equipos de DJ y Producción" },
+      { "id": 1905, "name": "Accesorios Musicales" },
+      { "id": 1906, "name": "Pintura y Dibujo" },
+      { "id": 1907, "name": "Manualidades" },
+      { "id": 1908, "name": "Materiales para Bellas Artes" },
+      { "id": 1909, "name": "Música Grabada" },
+      { "id": 1910, "name": "Partituras y Libros de Música" },
+      { "id": 1911, "name": "Materiales Artísticos Sostenibles" }
+    ]
+  },
+  {
+    "id": 20,
+    "name": "Cine y Series",
+    "subcategories": [
+      { "id": 2001, "name": "Películas en DVD y Blu-ray" },
+      { "id": 2002, "name": "Series de TV" },
+      { "id": 2003, "name": "Colecciones y Ediciones Especiales" },
+      { "id": 2004, "name": "Documentales" },
+      { "id": 2005, "name": "Animación y Anime" },
+      { "id": 2006, "name": "Cine Clásico" },
+      { "id": 2007, "name": "Contenido por Streaming" },
+      { "id": 2008, "name": "Merchandising de Cine" },
+      { "id": 2009, "name": "Equipamiento para Cinéfilos" },
+      { "id": 2010, "name": "Bandas Sonoras" },
+      {
+        "id": 2011,
+        "name": "Documentales sobre Medioambiente y Sostenibilidad"
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Papelería y Artículos de Oficina",
+    "subcategories": [
+      { "id": 2101, "name": "Escritura" },
+      { "id": 2102, "name": "Cuadernos y Libretas" },
+      { "id": 2103, "name": "Organización y Archivo" },
+      { "id": 2104, "name": "Material de Oficina" },
+      { "id": 2105, "name": "Papel y Consumibles" },
+      { "id": 2106, "name": "Mobiliario de Oficina" },
+      { "id": 2107, "name": "Equipos de Presentación" },
+      { "id": 2108, "name": "Planificación y Agendas" },
+      { "id": 2109, "name": "Sellos y Productos de Timbrado" },
+      { "id": 2110, "name": "Arte y Manualidades de Oficina" },
+      { "id": 2111, "name": "Papelería Sostenible y Reciclada" }
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Equipamiento Profesional e Industrial",
+    "subcategories": [
+      { "id": 2201, "name": "Maquinaria Industrial" },
+      { "id": 2202, "name": "Herramientas Profesionales" },
+      { "id": 2203, "name": "Equipos de Medición y Precisión" },
+      { "id": 2204, "name": "Suministros Industriales" },
+      { "id": 2205, "name": "Equipamiento para Hostelería" },
+      { "id": 2206, "name": "Equipo Médico Profesional" },
+      { "id": 2207, "name": "Material para Laboratorio" },
+      { "id": 2208, "name": "Equipamiento para Comercios" },
+      { "id": 2209, "name": "Vestuario y Seguridad Laboral" },
+      { "id": 2210, "name": "Almacenaje Industrial" },
+      {
+        "id": 2211,
+        "name": "Equipamiento Industrial Energéticamente Eficiente"
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "name": "Productos de Limpieza",
+    "subcategories": [
+      { "id": 2301, "name": "Limpiadores Multiusos" },
+      { "id": 2302, "name": "Productos para Cocina" },
+      { "id": 2303, "name": "Productos para Baño" },
+      { "id": 2304, "name": "Limpieza de Suelos" },
+      { "id": 2305, "name": "Lavandería" },
+      { "id": 2306, "name": "Ambientadores y Fragancias" },
+      { "id": 2307, "name": "Útiles de Limpieza" },
+      { "id": 2308, "name": "Productos Ecológicos de Limpieza" },
+      { "id": 2309, "name": "Limpiadores Específicos" },
+      { "id": 2310, "name": "Productos Profesionales" },
+      { "id": 2311, "name": "Productos de Limpieza Biodegradables" }
+    ]
+  },
+  {
+    "id": 24,
+    "name": "Software y Servicios Digitales",
+    "subcategories": [
+      { "id": 2401, "name": "Sistemas Operativos" },
+      { "id": 2402, "name": "Software de Oficina" },
+      { "id": 2403, "name": "Software de Diseño y Creatividad" },
+      { "id": 2404, "name": "Antivirus y Seguridad" },
+      { "id": 2405, "name": "Software Educativo" },
+      { "id": 2406, "name": "Aplicaciones Móviles" },
+      { "id": 2407, "name": "Suscripciones Digitales" },
+      { "id": 2408, "name": "Almacenamiento en la Nube" },
+      { "id": 2409, "name": "Software Empresarial" },
+      { "id": 2410, "name": "Juegos Digitales" },
+      { "id": 2411, "name": "Software para Gestión Ambiental" }
+    ]
+  },
+  {
+    "id": 25,
+    "name": "Viajes, Turismo y Equipaje",
+    "subcategories": [
+      { "id": 2501, "name": "Maletas y Trolleys" },
+      { "id": 2502, "name": "Mochilas y Bolsas de Viaje" },
+      { "id": 2503, "name": "Accesorios de Viaje" },
+      { "id": 2504, "name": "Paquetes Turísticos" },
+      { "id": 2505, "name": "Escapadas y Experiencias" },
+      { "id": 2506, "name": "Hoteles y Alojamiento" },
+      { "id": 2507, "name": "Vuelos y Transporte" },
+      { "id": 2508, "name": "Guías de Viaje" },
+      { "id": 2509, "name": "Material de Camping" },
+      { "id": 2510, "name": "Actividades Turísticas" },
+      { "id": 2511, "name": "Ecoturismo y Turismo Sostenible" },
+      { "id": 2512, "name": "Equipaje Sostenible" }
+    ]
+  },
+  {
+    "id": 26,
+    "name": "Fiestas y Eventos",
+    "subcategories": [
+      { "id": 2601, "name": "Artículos para Fiestas" },
+      { "id": 2602, "name": "Decoración de Eventos" },
+      { "id": 2603, "name": "Disfraces y Complementos" },
+      { "id": 2604, "name": "Artículos para Bodas" },
+      { "id": 2605, "name": "Artículos para Cumpleaños" },
+      { "id": 2606, "name": "Artículos para Festividades" },
+      { "id": 2607, "name": "Papelería de Fiesta" },
+      { "id": 2608, "name": "Regalos y Recuerdos" },
+      { "id": 2609, "name": "Piñatas y Juegos" },
+      { "id": 2610, "name": "Artículos para Catering" },
+      { "id": 2611, "name": "Artículos para Eventos Sostenibles" }
+    ]
+  },
+  {
+    "id": 27,
+    "name": "Coleccionables y Antigüedades",
+    "subcategories": [
+      { "id": 2701, "name": "Monedas y Billetes" },
+      { "id": 2702, "name": "Sellos" },
+      { "id": 2703, "name": "Cómics y Libros Raros" },
+      { "id": 2704, "name": "Figuras Coleccionables" },
+      { "id": 2705, "name": "Antigüedades" },
+      { "id": 2706, "name": "Arte y Obras de Colección" },
+      { "id": 2707, "name": "Memorabilia Deportiva" },
+      { "id": 2708, "name": "Tarjetas Coleccionables" },
+      { "id": 2709, "name": "Vinilos y Música de Colección" },
+      { "id": 2710, "name": "Objetos Vintage" }
+    ]
+  },
+  {
+    "id": 28,
+    "name": "Productos Culturales y Ceremoniales",
+    "subcategories": [
+      { "id": 2801, "name": "Artículos Religiosos" },
+      { "id": 2802, "name": "Ceremonias y Rituales" },
+      { "id": 2803, "name": "Artesanía Tradicional" },
+      { "id": 2804, "name": "Productos Regionales" },
+      { "id": 2805, "name": "Souvenirs y Recuerdos" },
+      { "id": 2806, "name": "Decoración Étnica" },
+      { "id": 2807, "name": "Textiles Tradicionales" },
+      { "id": 2808, "name": "Gastronomía Cultural" },
+      { "id": 2809, "name": "Productos Festivos" },
+      { "id": 2810, "name": "Patrimonio Cultural" },
+      { "id": 2811, "name": "Artesanía Sostenible y Comercio Justo" }
+    ]
+  },
+  {
+    "id": 29,
+    "name": "Productos para Adultos",
+    "subcategories": [
+      { "id": 2901, "name": "Lencería y Ropa Íntima" },
+      { "id": 2902, "name": "Juguetes para Adultos" },
+      { "id": 2903, "name": "Salud Sexual" },
+      { "id": 2904, "name": "Libros y Revistas para Adultos" },
+      { "id": 2905, "name": "Artículos para Despedidas" },
+      { "id": 2906, "name": "Juegos para Adultos" },
+      { "id": 2907, "name": "Bienestar Íntimo" },
+      { "id": 2908, "name": "Accesorios Temáticos" },
+      { "id": 2909, "name": "Cosmética Especializada" },
+      { "id": 2910, "name": "Contenido Digital para Adultos" },
+      { "id": 2911, "name": "Productos Íntimos Ecológicos" }
+    ]
+  },
+  {
+    "id": 30,
+    "name": "Seguridad y Vigilancia",
+    "subcategories": [
+      { "id": 3001, "name": "Alarmas y Sistemas de Seguridad" },
+      { "id": 3002, "name": "Cámaras de Vigilancia" },
+      { "id": 3003, "name": "Cerraduras y Control de Acceso" },
+      { "id": 3004, "name": "Cajas Fuertes" },
+      { "id": 3005, "name": "Seguridad Informática" },
+      { "id": 3006, "name": "Protección Personal" },
+      { "id": 3007, "name": "Seguridad Familiar" },
+      { "id": 3008, "name": "Seguridad Vehicular" },
+      { "id": 3009, "name": "Seguridad en el Trabajo" },
+      { "id": 3010, "name": "Iluminación de Seguridad" },
+      { "id": 3011, "name": "Sistemas de Seguridad de Bajo Consumo" }
+    ]
+  },
+  {
+    "id": 31,
+    "name": "Energía y Climatización",
+    "subcategories": [
+      { "id": 3101, "name": "Aires Acondicionados" },
+      { "id": 3102, "name": "Calefacción" },
+      { "id": 3103, "name": "Ventilación" },
+      { "id": 3104, "name": "Energía Solar" },
+      { "id": 3105, "name": "Generadores" },
+      { "id": 3106, "name": "Estufas y Chimeneas" },
+      { "id": 3107, "name": "Bombas de Calor" },
+      { "id": 3108, "name": "Termostatos Inteligentes" },
+      { "id": 3109, "name": "Aislamiento Térmico" },
+      { "id": 3110, "name": "Climatización para Negocios" },
+      { "id": 3111, "name": "Soluciones de Energías Renovables" },
+      { "id": 3112, "name": "Equipos de Eficiencia Energética" }
+    ]
+  }
+]

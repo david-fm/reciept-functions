@@ -1,11 +1,13 @@
 # models.py
 from sqlalchemy import Column, ForeignKey, Integer, String, Date, Numeric, UniqueConstraint, Boolean, DateTime
-from typing import Annotated, TypedDict, Optional, List, Union, Literal
+from typing import Annotated, Optional, List, Union, Literal, Dict
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm.session import Session
 import uuid
 from database import Base
-from pydantic import BaseModel, StringConstraints, EmailStr, SecretStr
+from pydantic import BaseModel, StringConstraints, EmailStr, SecretStr, Field
+from typing_extensions import TypedDict
 from datetime import datetime, date
 import decimal
 import json
@@ -28,7 +30,8 @@ class Usuario(Base):
 
     # Relationships
     sistema_usos = relationship("SistemaUso", back_populates="usuario")
-    tiendas = relationship("Tienda", back_populates="usuario")
+    tickets = relationship(
+        "Ticket", back_populates="usuario", cascade="all, delete-orphan")
 
     def to_dict(self, include_relationships=False):
         """Convert model to dictionary, optionally including relationships"""
@@ -47,7 +50,7 @@ class Usuario(Base):
         if include_relationships:
             result["sistema_usos"] = [uso.to_dict()
                                       for uso in self.sistema_usos]
-            result["tiendas"] = [tienda.to_dict() for tienda in self.tiendas]
+            result["tickets"] = [tickets.to_dict() for tickets in self.tickets]
 
         return result
 
@@ -95,16 +98,41 @@ class Categoria(Base):
     __tablename__ = "categorias"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    nombre = Column(String(50), nullable=False)
-    mes_ano = Column(Date, nullable=False)
+    nombre = Column(String(100), nullable=False)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey(
+        'categorias.id'), nullable=True)  # Self-reference for hierarchy
+    # Level in hierarchy (0 for main category, 1 for subcategory)
+    nivel = Column(Integer, default=0)
+    activo = Column(Boolean, default=True)
+    # Note: mes_ano column has been removed
 
-    def to_dict(self):
+    # Self-referential relationship
+    subcategorias = relationship("Categoria",
+                                 backref=backref(
+                                     "categoria_padre", remote_side=[id]),
+                                 cascade="all, delete-orphan")
+
+    # Items that belong to this category - specify which foreign key to use
+    items_as_main_category = relationship(
+        "Item", foreign_keys="Item.categoria_id", back_populates="categoria_rel")
+    items_as_subcategory = relationship(
+        "Item", foreign_keys="Item.sub_categoria_id", back_populates="sub_categoria_rel")
+
+    def to_dict(self, include_relationships=False):
         """Convert model to dictionary"""
-        return {
+        result = {
             "id": str(self.id),
             "nombre": self.nombre,
-            "mes_ano": self.mes_ano.isoformat() if isinstance(self.mes_ano, date) else self.mes_ano
+            "nivel": self.nivel,
+            "activo": self.activo,
+            "parent_id": str(self.parent_id) if self.parent_id else None
         }
+
+        if include_relationships:
+            result["subcategorias"] = [subcat.to_dict()
+                                       for subcat in self.subcategorias] if self.subcategorias else []
+
+        return result
 
 
 class Ticket(Base):
@@ -113,13 +141,15 @@ class Ticket(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nombre_tienda = Column(String(100), nullable=False)
     total = Column(Numeric(10, 2), nullable=False)
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey('usuarios.id', ondelete='CASCADE'))
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey(
+        'usuarios.id', ondelete='CASCADE'))
     created_at = Column(DateTime(timezone=True), nullable=False)
     modified_at = Column(DateTime(timezone=True), nullable=False)
 
     # Relationships
-    usuario = relationship("Usuario", back_populates="tiendas")
-    items = relationship("Item", back_populates="tienda")
+    usuario = relationship("Usuario", back_populates="tickets")
+    items = relationship("Item", back_populates="ticket",
+                         cascade="all, delete-orphan")
 
     def to_dict(self, include_relationships=False):
         """Convert model to dictionary, optionally including relationships"""
@@ -149,15 +179,24 @@ class Item(Base):
     __tablename__ = "items"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    receipt_id = Column(UUID(as_uuid=True), ForeignKey('ticket.id', ondelete='CASCADE'))
+    receipt_id = Column(UUID(as_uuid=True), ForeignKey(
+        'ticket.id', ondelete='CASCADE'))
     nombre = Column(String(100), nullable=False)
     precio = Column(Numeric(10, 2), nullable=False)
     cantidad = Column(Integer, nullable=False)
-    categoria = Column(String(50))
-    sub_categoria = Column(String(50))
 
-    # Relationship
-    tienda = relationship("Ticket", back_populates="items")
+    # Only keep the foreign key columns to categories
+    categoria_id = Column(UUID(as_uuid=True), ForeignKey(
+        'categorias.id'), nullable=True)
+    sub_categoria_id = Column(
+        UUID(as_uuid=True), ForeignKey('categorias.id'), nullable=True)
+
+    # Relationships
+    ticket = relationship("Ticket", back_populates="items")
+    categoria_rel = relationship("Categoria", foreign_keys=[
+                                 categoria_id], back_populates="items_as_main_category")
+    sub_categoria_rel = relationship("Categoria", foreign_keys=[
+                                     sub_categoria_id], back_populates="items_as_subcategory")
 
     def to_dict(self, include_relationships=False):
         """Convert model to dictionary, optionally including relationships"""
@@ -167,16 +206,29 @@ class Item(Base):
             "nombre": self.nombre,
             "precio": float(self.precio) if isinstance(self.precio, decimal.Decimal) else self.precio,
             "cantidad": self.cantidad,
-            "categoria": self.categoria,
-            "sub_categoria": self.sub_categoria
+            "categoria_id": str(self.categoria_id) if self.categoria_id else None,
+            "sub_categoria_id": str(self.sub_categoria_id) if self.sub_categoria_id else None
         }
 
         if include_relationships:
+            # Include category objects
+            if self.categoria_rel:
+                result["categoria"] = self.categoria_rel.nombre
+                result["categoria_obj"] = self.categoria_rel.to_dict()
+
+            if self.sub_categoria_rel:
+                result["sub_categoria"] = self.sub_categoria_rel.nombre
+                result["sub_categoria_obj"] = self.sub_categoria_rel.to_dict()
+
             # Avoid circular references - minimal info
-            result["tienda"] = {
-                "id": str(self.tienda.id),
-                "nombre_tienda": self.tienda.nombre_tienda
-            } if self.tienda else None
+            result["ticket"] = {
+                "id": str(self.ticket.id),
+                "nombre_tienda": self.ticket.nombre_tienda,
+                "total": float(self.ticket.total) if isinstance(self.ticket.total, decimal.Decimal) else self.ticket.total,
+                "usuario_id": str(self.ticket.usuario_id),
+                "created_at": self.ticket.created_at.isoformat() if self.ticket.created_at else None,
+                "modified_at": self.ticket.modified_at.isoformat() if self.ticket.modified_at else None
+            } if self.ticket else None
 
         return result
 
@@ -283,20 +335,131 @@ class UserModify(BaseModel):
     surnames: str | None = None
 
 
-class ItemData(TypedDict):
+class ItemDataInput(BaseModel):
     id: Optional[str]
     receipt_id: Optional[str]
     nombre: Optional[str]
     precio: Optional[float]
     cantidad: Optional[int]
-    categoria: Optional[str]
-    sub_categoria: Optional[str]
-    operation: Optional[Literal['create', 'update', 'delete']]
+    categoria_id: Optional[str]
+    sub_categoria_id: Optional[str]
+    operation: Optional[Literal['create', 'update', 'delete']] = None
+
+
+class TicketDataInput(BaseModel):
+    id: Optional[str]
+    nombre_tienda: str
+    total: float
+    usuario_id: str | None = None
+    items: List[ItemDataInput]
+
+
+class ItemData(BaseModel):
+    id: Optional[str]
+    receipt_id: Optional[str]
+    nombre: Optional[str]
+    precio: Optional[float]
+    cantidad: Optional[int]
+    categoria_id: Optional[str]
+    sub_categoria_id: Optional[str]
+    operation: Union[Literal['create', 'update', 'delete'], None] = None
 
 
 class TicketData(TypedDict):
     id: Optional[str]
     nombre_tienda: str
     total: float
-    usuario_id: str
+    usuario_id: str | None = None
     items: List[ItemData]
+
+    @staticmethod
+    def from_ticket(ticket: Ticket):
+        return TicketData(
+            id=str(ticket.id),
+            nombre_tienda=ticket.nombre_tienda,
+            total=float(ticket.total),
+            usuario_id=str(ticket.usuario_id),
+            items=[ItemData(
+                id=str(item.id),
+                receipt_id=str(item.receipt_id),
+                nombre=item.nombre,
+                precio=float(item.precio),
+                cantidad=item.cantidad,
+                categoria=str(item.categoria_id),
+                sub_categoria=str(item.sub_categoria_id),
+                operation=None
+            ) for item in ticket.items]
+        )
+
+
+class Subcategory(BaseModel):
+    """Modelo para las subcategorías"""
+    name: str
+    id: Optional[uuid.UUID]
+
+
+class Category(BaseModel):
+    """Modelo para las categorías principales"""
+    name: str
+    id: Optional[uuid.UUID]
+    subcategories: List[Subcategory]
+
+
+class CategoriesData(BaseModel):
+    """Modelo para el conjunto completo de datos de categorías"""
+    categories: List[Category] = Field(default_factory=list)
+
+    def __str__(self):
+        return '- '+'\n- '.join([category.name for category in self.categories])
+
+
+def get_categories_data(db: Session) -> CategoriesData:
+    """
+    Optimized version that retrieves all categories in a single query
+    and structures them using dictionary mapping.
+
+    Args:
+        db: SQLAlchemy database session
+
+    Returns:
+        models.CategoriesData: Structured category data
+    """
+    # Get all active categories
+    all_categories = db.query(Categoria).filter(
+        Categoria.activo == True
+    ).all()
+
+    # Group by main categories and subcategories
+    main_categories: Dict[uuid.UUID, Categoria] = {}
+    subcategories: Dict[uuid.UUID, List[Categoria]] = {}
+
+    for cat in all_categories:
+        if cat.nivel == 0:
+            main_categories[cat.id] = cat
+            subcategories[cat.id] = []
+        elif cat.nivel == 1 and cat.parent_id is not None:
+            if cat.parent_id not in subcategories:
+                subcategories[cat.parent_id] = []
+            subcategories[cat.parent_id].append(cat)
+
+    # Build CategoriesData
+    categories_data = CategoriesData(categories=[])
+
+    for main_id, main_cat in main_categories.items():
+        # Convert subcategories to Pydantic model
+        subcat_models = [
+            Subcategory(name=subcat.nombre, id=subcat.id)
+            for subcat in subcategories.get(main_id, [])
+        ]
+
+        # Create main category with its subcategories
+        category = Category(
+            id=main_cat.id,
+            name=main_cat.nombre,
+            subcategories=subcat_models
+        )
+
+        # Add to categories list
+        categories_data.categories.append(category)
+
+    return categories_data
