@@ -29,9 +29,11 @@ class Usuario(Base):
     last_verified = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    sistema_usos = relationship("SistemaUso", back_populates="usuario")
     tickets = relationship(
         "Ticket", back_populates="usuario", cascade="all, delete-orphan")
+    
+    usos_servicio = relationship(
+        "UsoServicio", back_populates="usuario", cascade="all, delete-orphan")
 
     def to_dict(self, include_relationships=False):
         """Convert model to dictionary, optionally including relationships"""
@@ -51,45 +53,6 @@ class Usuario(Base):
             result["sistema_usos"] = [uso.to_dict()
                                       for uso in self.sistema_usos]
             result["tickets"] = [tickets.to_dict() for tickets in self.tickets]
-
-        return result
-
-
-class SistemaUso(Base):
-    __tablename__ = "sistema_uso"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sistema = Column(String(50), nullable=False)
-    uso = Column(String(100))
-    fecha = Column(Date, nullable=False)
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey('usuarios.id'))
-
-    # Relationship
-    usuario = relationship("Usuario", back_populates="sistema_usos")
-
-    __table_args__ = (
-        UniqueConstraint('sistema', 'fecha', 'usuario_id',
-                         name='sistema_uso_key'),
-    )
-
-    def to_dict(self, include_relationships=False):
-        """Convert model to dictionary, optionally including relationships"""
-        result = {
-            "id": str(self.id),
-            "sistema": self.sistema,
-            "uso": self.uso,
-            "fecha": self.fecha.isoformat() if isinstance(self.fecha, date) else self.fecha,
-            "usuario_id": str(self.usuario_id)
-        }
-
-        if include_relationships:
-            # Avoid circular references
-            result["usuario"] = {
-                "id": str(self.usuario.id),
-                "nombre": self.usuario.nombre,
-                "apellidos": self.usuario.apellidos,
-                "correo": self.usuario.correo
-            } if self.usuario else None
 
         return result
 
@@ -232,6 +195,121 @@ class Item(Base):
 
         return result
 
+# Nuevas tablas para el sistema de cuotas
+
+class Servicio(Base):
+    __tablename__ = "servicios"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nombre = Column(String(100), nullable=False)
+    descripcion = Column(String(255), nullable=True)
+    activo = Column(Boolean, default=True)
+
+    # Relationships
+    cuotas = relationship("Cuota", back_populates="servicio",
+                          cascade="all, delete-orphan")
+    usos = relationship("UsoServicio", back_populates="servicio")
+
+    def to_dict(self, include_relationships=False):
+        """Convert model to dictionary"""
+        result = {
+            "id": str(self.id),
+            "nombre": self.nombre,
+            "descripcion": self.descripcion,
+            "activo": self.activo
+        }
+
+        if include_relationships:
+            result["cuotas"] = [cuota.to_dict() for cuota in self.cuotas]
+            result["usos"] = [uso.to_dict() for uso in self.usos]
+
+        return result
+
+
+class Cuota(Base):
+    __tablename__ = "cuotas"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    servicio_id = Column(UUID(as_uuid=True), ForeignKey(
+        'servicios.id', ondelete='CASCADE'))
+    nombre = Column(String(100), nullable=False)
+    limite_uso = Column(Integer, nullable=False, default=0)  # 0 = ilimitado
+    # ID del plan en Stripe al que está asociada esta cuota
+    plan_stripe = Column(String(255), nullable=True)
+    activo = Column(Boolean, default=True)
+
+    # Relationships
+    servicio = relationship("Servicio", back_populates="cuotas")
+    usos = relationship("UsoServicio", back_populates="cuota")
+
+    def to_dict(self, include_relationships=False):
+        """Convert model to dictionary"""
+        result = {
+            "id": str(self.id),
+            "servicio_id": str(self.servicio_id),
+            "nombre": self.nombre,
+            "limite_uso": self.limite_uso,
+            "plan_stripe": self.plan_stripe,
+            "activo": self.activo
+        }
+
+        if include_relationships:
+            result["servicio"] = self.servicio.to_dict(
+            ) if self.servicio else None
+            result["usos"] = [uso.to_dict() for uso in self.usos]
+
+        return result
+
+
+class UsoServicio(Base):
+    __tablename__ = "uso_servicios"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey(
+        'usuarios.id', ondelete='CASCADE'))
+    servicio_id = Column(UUID(as_uuid=True), ForeignKey(
+        'servicios.id', ondelete='CASCADE'))
+    cuota_id = Column(UUID(as_uuid=True), ForeignKey(
+        'cuotas.id', ondelete='CASCADE'))
+    uso_actual = Column(Integer, default=0)
+    ultimo_reset = Column(DateTime(timezone=True),
+                          nullable=True)  # Para fines de registro
+
+    # Unique constraint to ensure one record per user-service-quota
+    __table_args__ = (
+        UniqueConstraint('usuario_id', 'servicio_id',
+                         'cuota_id', name='uc_usuario_servicio_cuota'),
+    )
+
+    # Relationships
+    usuario = relationship("Usuario", back_populates="usos_servicio")
+    servicio = relationship("Servicio", back_populates="usos")
+    cuota = relationship("Cuota", back_populates="usos")
+
+    def to_dict(self, include_relationships=False):
+        """Convert model to dictionary"""
+        result = {
+            "id": str(self.id),
+            "usuario_id": str(self.usuario_id),
+            "servicio_id": str(self.servicio_id),
+            "cuota_id": str(self.cuota_id),
+            "uso_actual": self.uso_actual,
+            "ultimo_reset": self.ultimo_reset.isoformat() if self.ultimo_reset else None
+        }
+
+        if include_relationships:
+            result["usuario"] = {
+                "id": str(self.usuario.id),
+                "nombre": self.usuario.nombre,
+                "apellidos": self.usuario.apellidos,
+                "correo": self.usuario.correo
+            } if self.usuario else None
+
+            result["servicio"] = self.servicio.to_dict(
+            ) if self.servicio else None
+            result["cuota"] = self.cuota.to_dict() if self.cuota else None
+
+        return result
 
 # Custom JSON encoder for handling SQLAlchemy specific types
 class SQLAlchemyJSONEncoder(json.JSONEncoder):
@@ -463,3 +541,70 @@ def get_categories_data(db: Session) -> CategoriesData:
         categories_data.categories.append(category)
 
     return categories_data
+
+# Nuevos modelos Pydantic para el sistema de cuotas
+
+
+class ServicioBase(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+    activo: bool = True
+
+
+class ServicioCreate(ServicioBase):
+    pass
+
+
+class ServicioUpdate(ServicioBase):
+    nombre: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+class ServicioRead(ServicioBase):
+    id: str
+
+
+class CuotaBase(BaseModel):
+    servicio_id: str
+    nombre: str
+    limite_uso: int = 0  # 0 significa ilimitado
+    plan_stripe: Optional[str] = None
+    activo: bool = True
+
+
+class CuotaCreate(CuotaBase):
+    pass
+
+
+class CuotaUpdate(CuotaBase):
+    servicio_id: Optional[str] = None
+    nombre: Optional[str] = None
+    limite_uso: Optional[int] = None
+    plan_stripe: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+class CuotaRead(CuotaBase):
+    id: str
+    servicio: Optional[ServicioRead] = None
+
+
+class UsoServicioBase(BaseModel):
+    usuario_id: str
+    servicio_id: str
+    cuota_id: str
+    uso_actual: int = 0
+    ultimo_reset: Optional[datetime] = None
+
+
+class UsoServicioCreate(UsoServicioBase):
+    pass
+
+
+class UsoServicioUpdate(BaseModel):
+    uso_actual: Optional[int] = None
+    ultimo_reset: Optional[datetime] = None
+
+
+class UsoServicioRead(UsoServicioBase):
+    id: str

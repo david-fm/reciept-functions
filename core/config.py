@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_PROJECT: str = os.getenv("GOOGLE_CLOUD_PROJECT", "")
     VERTEXAI_MODEL_NAME: str = os.getenv("VERTEXAI_MODEL_NAME", "text-bison")
 
+    # Services configuration
+    TICKET_PROCESSING_SERVICE: str = os.getenv("TICKET_PROCESSING_SERVICE", "")
+    CREATE_TICKET_SERVICE: str = os.getenv("CREATE_TICKET_SERVICE", "")
+    MODIFY_TICKET_SERVICE: str = os.getenv("MODIFY_TICKET_SERVICE", "")
+
     categories_data: CategoriesData | None = None
 
     class Config:

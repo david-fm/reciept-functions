@@ -3,11 +3,23 @@ import uuid
 from typing import Dict, List
 # from django.contrib.auth.models import AbstractBaseUser
 # from ninja import Schema
-from typing import TypedDict
+from typing import TypedDict, Literal
 from pydantic import Field, field_validator
 from typing_extensions import Annotated
 from datetime import datetime
+from PIL import Image
+import tempfile
+import json
 import re
+import os
+
+from fastapi.datastructures import UploadFile
+from vertexai.generative_models import Image as VertexImage
+from services.ai_services.models import model
+from core.file_processing.process_pdf import convert_pdf_to_images, image_to_bytes
+from services.ai_services.config import pdf_config
+from models import TicketData, ItemData
+
 # from asgiref.sync import sync_to_async
 
 
@@ -85,6 +97,49 @@ def clean_int(value: str) -> int:
     value = clean_number(value)
     return int(value)
 
+
+async def file_to_receipt_data(
+    file: UploadFile, 
+    file_type: Literal["pdf", "image"], 
+    file_extension:str
+) -> TicketData:
+    # Create a temporary file to save the uploaded file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_extension}') as temp_file:
+        content = await file.read()
+        temp_file.write(content)
+        temp_file_path = temp_file.name
+
+    # Add the instruction prompt
+    inp = ["Extract the information from the images"]
+
+    if file_type == 'pdf':
+        # Process PDF
+        images = convert_pdf_to_images(temp_file_path, in_bytes=True)
+        # Create input for the model
+        inp.routerend(VertexImage.from_bytes(image) for image in images)
+    else:
+        # Process image
+        image = Image.open(temp_file_path)
+        inp.routerend(VertexImage.from_bytes(image_to_bytes(image)))
+
+    # Call the model
+    response = await model.ainvoke(
+        inp,
+        generation_config=pdf_config)
+    json_data = json.loads(response.text)
+    os.unlink(temp_file_path)
+    ticket_data = TicketData(
+        nombre_tienda=json_data.get("store_name", "Unknown"),
+        total=clean_price(json_data.get("total").get("total_price")),
+        items=[
+            ItemData(
+                nombre=item.get("nm"),
+                precio=clean_price(item.get("price")),
+                cantidad=clean_int(item.get("cnt")))
+            for item in json_data.get("menu")],
+    )
+
+    return ticket_data
 
 # async def create_receipt(data: Dict, user: AbstractBaseUser) -> Receipt:
 #     """

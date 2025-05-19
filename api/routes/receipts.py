@@ -25,13 +25,11 @@ from services.receipt_service import (
     get_tickets
 )
 from services.subscription_service import verify_subscription
-from services.ai_services.models import model
-from services.ai_services.config import pdf_config
-from core.file_processing.process_pdf import convert_pdf_to_images, image_to_bytes
+from services.quota_service import check_quota
 from services.receipt_processing import (
-    clean_int,
-    clean_price
+    file_to_receipt_data
 )
+from core.config import settings
 
 router = APIRouter()
 
@@ -109,6 +107,7 @@ async def get_receipt_items(
 
 
 @router.post("")
+@check_quota(servicio_id=settings.CREATE_TICKET_SERVICE)
 async def create_receipt(
     ticket_data: TicketData,
     user: Annotated[Usuario, Depends(get_current_active_user)],
@@ -153,6 +152,7 @@ async def create_receipt(
 
 
 @router.put("")
+@check_quota(servicio_id=settings.MODIFY_TICKET_SERVICE)
 async def update_receipt(
     ticket_data: TicketDataInput,
     user: Annotated[Usuario, Depends(get_current_active_user)],
@@ -248,173 +248,175 @@ async def delete_receipt(
 
 
 # Bulk operations endpoint for more efficient processing
-@router.post("/bulk")
-async def bulk_receipts_operations(
-    operations: List[Dict],
-    user: Annotated[Usuario, Depends(get_current_active_user)],
-    db: Session = Depends(get_db),
-    background_tasks: BackgroundTasks = None
-):
-    """Perform bulk operations on receipts (create, update, delete)"""
-    is_active = await verify_subscription(user, db)
+# Deactivated by now
+# @router.post("/bulk")
+# async def bulk_receipts_operations(
+#     operations: List[Dict],
+#     user: Annotated[Usuario, Depends(get_current_active_user)],
+#     db: Session = Depends(get_db),
+#     background_tasks: BackgroundTasks = None
+# ):
+#     """Perform bulk operations on receipts (create, update, delete)"""
+#     is_active = await verify_subscription(user, db)
 
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
+#     if not is_active:
+#         raise HTTPException(
+#             status_code=status.HTTP_402_PAYMENT_REQUIRED,
+#             detail="Active subscription required"
+#         )
 
-    results = []
+#     results = []
 
-    try:
-        # Start transaction for all operations
-        for operation in operations:
-            op_type = operation.get("type")
-            data = operation.get("data", {})
+#     try:
+#         # Start transaction for all operations
+#         for operation in operations:
+#             op_type = operation.get("type")
+#             data = operation.get("data", {})
 
-            if op_type == "create":
-                # Validate data
-                validation_errors = validate_ticket_data(data)
-                if validation_errors:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "errors": validation_errors
-                    })
-                    continue
+#             if op_type == "create":
+#                 # Validate data
+#                 validation_errors = validate_ticket_data(data)
+#                 if validation_errors:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "errors": validation_errors
+#                     })
+#                     continue
 
-                # Create ticket
-                try:
-                    new_ticket = create_ticket(db, user.id, data)
-                    results.routerend({
-                        "success": True,
-                        "type": op_type,
-                        "id": str(new_ticket.id)
-                    })
+#                 # Create ticket
+#                 try:
+#                     new_ticket = create_ticket(db, user.id, data)
+#                     results.routerend({
+#                         "success": True,
+#                         "type": op_type,
+#                         "id": str(new_ticket.id)
+#                     })
 
-                    # Log operation
-                    if background_tasks:
-                        background_tasks.add_task(
-                            log_operation, user.id, "CREATE", "receipt (bulk)", str(new_ticket.id))
+#                     # Log operation
+#                     if background_tasks:
+#                         background_tasks.add_task(
+#                             log_operation, user.id, "CREATE", "receipt (bulk)", str(new_ticket.id))
 
-                except Exception as e:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "error": str(e)
-                    })
+#                 except Exception as e:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "error": str(e)
+#                     })
 
-            elif op_type == "update":
-                # Validate data
-                validation_errors = validate_ticket_data(data)
-                if validation_errors:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "errors": validation_errors
-                    })
-                    continue
+#             elif op_type == "update":
+#                 # Validate data
+#                 validation_errors = validate_ticket_data(data)
+#                 if validation_errors:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "errors": validation_errors
+#                     })
+#                     continue
 
-                # Check ticket ownership
-                ticket = db.query(Ticket).filter(
-                    Ticket.id == data.get("id"),
-                    Ticket.usuario_id == user.id
-                ).first()
+#                 # Check ticket ownership
+#                 ticket = db.query(Ticket).filter(
+#                     Ticket.id == data.get("id"),
+#                     Ticket.usuario_id == user.id
+#                 ).first()
 
-                if not ticket:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "id": data.get("id"),
-                        "error": "Receipt not found or not owned by user"
-                    })
-                    continue
+#                 if not ticket:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "id": data.get("id"),
+#                         "error": "Receipt not found or not owned by user"
+#                     })
+#                     continue
 
-                # Update ticket
-                try:
-                    update_ticket(db, user.id, data)
-                    results.routerend({
-                        "success": True,
-                        "type": op_type,
-                        "id": data.get("id")
-                    })
+#                 # Update ticket
+#                 try:
+#                     update_ticket(db, user.id, data)
+#                     results.routerend({
+#                         "success": True,
+#                         "type": op_type,
+#                         "id": data.get("id")
+#                     })
 
-                    # Log operation
-                    if background_tasks:
-                        background_tasks.add_task(
-                            log_operation, user.id, "UPDATE", "receipt (bulk)", data.get("id"))
+#                     # Log operation
+#                     if background_tasks:
+#                         background_tasks.add_task(
+#                             log_operation, user.id, "UPDATE", "receipt (bulk)", data.get("id"))
 
-                except Exception as e:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "id": data.get("id"),
-                        "error": str(e)
-                    })
+#                 except Exception as e:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "id": data.get("id"),
+#                         "error": str(e)
+#                     })
 
-            elif op_type == "delete":
-                ticket_id = data.get("id")
-                if not ticket_id:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "error": "Receipt ID is required"
-                    })
-                    continue
+#             elif op_type == "delete":
+#                 ticket_id = data.get("id")
+#                 if not ticket_id:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "error": "Receipt ID is required"
+#                     })
+#                     continue
 
-                # Delete ticket
-                try:
-                    deleted = delete_ticket(db, user.id, uuid.UUID(ticket_id))
+#                 # Delete ticket
+#                 try:
+#                     deleted = delete_ticket(db, user.id, uuid.UUID(ticket_id))
 
-                    if not deleted:
-                        results.routerend({
-                            "success": False,
-                            "type": op_type,
-                            "id": ticket_id,
-                            "error": "Receipt not found or not owned by user"
-                        })
-                        continue
+#                     if not deleted:
+#                         results.routerend({
+#                             "success": False,
+#                             "type": op_type,
+#                             "id": ticket_id,
+#                             "error": "Receipt not found or not owned by user"
+#                         })
+#                         continue
 
-                    results.routerend({
-                        "success": True,
-                        "type": op_type,
-                        "id": ticket_id
-                    })
+#                     results.routerend({
+#                         "success": True,
+#                         "type": op_type,
+#                         "id": ticket_id
+#                     })
 
-                    # Log operation
-                    if background_tasks:
-                        background_tasks.add_task(
-                            log_operation, user.id, "DELETE", "receipt (bulk)", ticket_id)
+#                     # Log operation
+#                     if background_tasks:
+#                         background_tasks.add_task(
+#                             log_operation, user.id, "DELETE", "receipt (bulk)", ticket_id)
 
-                except Exception as e:
-                    results.routerend({
-                        "success": False,
-                        "type": op_type,
-                        "id": ticket_id,
-                        "error": str(e)
-                    })
-            else:
-                results.routerend({
-                    "success": False,
-                    "type": op_type,
-                    "error": "Unknown operation type"
-                })
+#                 except Exception as e:
+#                     results.routerend({
+#                         "success": False,
+#                         "type": op_type,
+#                         "id": ticket_id,
+#                         "error": str(e)
+#                     })
+#             else:
+#                 results.routerend({
+#                     "success": False,
+#                     "type": op_type,
+#                     "error": "Unknown operation type"
+#                 })
 
-        return JSONResponse({
-            "results": results,
-            "successful": sum(1 for r in results if r.get("success", False)),
-            "failed": sum(1 for r in results if not r.get("success", False))
-        })
+#         return JSONResponse({
+#             "results": results,
+#             "successful": sum(1 for r in results if r.get("success", False)),
+#             "failed": sum(1 for r in results if not r.get("success", False))
+#         })
 
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing bulk operations: {str(e)}"
-        )
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error processing bulk operations: {str(e)}"
+#         )
 
 
 @router.post("/upload", response_model=TicketData)
+@check_quota(servicio_id=settings.TICKET_PROCESSING_SERVICE)
 async def upload_receipt(
         file: UploadFile,
         user: Annotated[Usuario, Depends(get_current_active_user)],
@@ -441,47 +443,10 @@ async def upload_receipt(
             status_code=400, detail="File must be a PDF, JPEG, or PNG")
 
     try:
-        # Create a temporary file to save the uploaded file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{file_extension}') as temp_file:
-            content = await file.read()
-            temp_file.write(content)
-            temp_file_path = temp_file.name
-
-        # Add the instruction prompt
-        inp = ["Extract the information from the images"]
-
-        if file_type == 'pdf':
-            # Process PDF
-            images = convert_pdf_to_images(temp_file_path, in_bytes=True)
-            # Create input for the model
-            inp.routerend(VertexImage.from_bytes(image) for image in images)
-        else:
-            # Process image
-            image = Image.open(temp_file_path)
-            inp.routerend(VertexImage.from_bytes(image_to_bytes(image)))
-
-        # Call the model
-        response = await model.ainvoke(
-            inp,
-            generation_config=pdf_config)
-        json_data = json.loads(response.text)
-        print(json_data)
-        ticket_data = TicketData(
-            nombre_tienda=json_data.get("store_name", "Unknown"),
-            total=clean_price(json_data.get("total").get("total_price")),
-            items=[
-                ItemData(
-                    nombre=item.get("nm"),
-                    precio=clean_price(item.get("price")),
-                    cantidad=clean_int(item.get("cnt")))
-                for item in json_data.get("menu")],
-        )
-        print(ticket_data)
+        
+        ticket_data = await file_to_receipt_data(file, file_type, file_extension)
+        # print(ticket_data)
         ticket = create_ticket(db, user.id, ticket_data)
-        # Clean up the temporary file
-        os.unlink(temp_file_path)
-
-        # Run post-processing
         # await post_processing(json_data)
 
         return TicketData.from_ticket(ticket)
