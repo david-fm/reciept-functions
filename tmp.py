@@ -7,8 +7,8 @@ import json
 import os
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from .database import SessionLocal, engine
-from .models import Categoria, Item, Usuario, Ticket
+from database import SessionLocal, engine
+from models import Categoria, Item, Usuario, Ticket
 
 
 def execute_sql_migration(sql_file_path):

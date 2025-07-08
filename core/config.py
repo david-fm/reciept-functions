@@ -1,6 +1,8 @@
 import os
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from models import CategoriesData
+from dotenv import load_dotenv
 
 
 class Settings(BaseSettings):
@@ -29,13 +31,20 @@ class Settings(BaseSettings):
     TICKET_PROCESSING_SERVICE: str = os.getenv("TICKET_PROCESSING_SERVICE", "")
     CREATE_TICKET_SERVICE: str = os.getenv("CREATE_TICKET_SERVICE", "")
     MODIFY_TICKET_SERVICE: str = os.getenv("MODIFY_TICKET_SERVICE", "")
+    GOOGLE_APPLICATION_CREDENTIALS: str = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS", "")
+    
+    DB_URI: str = os.getenv("DB_URI", "")
 
     categories_data: CategoriesData | None = None
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra='ignore'
+    )
 
 
 # Create global settings object
 settings = Settings()
+load_dotenv('.env')

@@ -180,7 +180,7 @@ async def update_receipt(
         )
 
     # Check if the ticket ID is provided
-    if not ticket_data.get("id"):
+    if not ticket_data.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Receipt ID is required for updates"
@@ -192,7 +192,7 @@ async def update_receipt(
         # Log the operation
         if background_tasks:
             background_tasks.add_task(
-                log_operation, user.id, "UPDATE", "receipt", ticket_data.get("id"))
+                log_operation, user.id, "UPDATE", "receipt", ticket_data.id)
 
         return JSONResponse({"message": "Receipt updated successfully"})
 

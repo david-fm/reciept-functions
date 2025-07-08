@@ -116,11 +116,12 @@ async def file_to_receipt_data(
         # Process PDF
         images = convert_pdf_to_images(temp_file_path, in_bytes=True)
         # Create input for the model
-        inp.routerend(VertexImage.from_bytes(image) for image in images)
+        inp.extend([VertexImage.from_bytes(image)
+                   for image in images])  # type: ignore
     else:
         # Process image
         image = Image.open(temp_file_path)
-        inp.routerend(VertexImage.from_bytes(image_to_bytes(image)))
+        inp.append(VertexImage.from_bytes(image_to_bytes(image)))
 
     # Call the model
     response = await model.ainvoke(

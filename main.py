@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
+import stripe
 
 from api.routes import auth, users, receipts, categories, subscriptions, webhooks
 from database import get_db
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
 
     # Get a database session
     db = next(get_db())
+    stripe.api_key = settings.STRIPE_SECRET_KEY
     try:
         # Initialize categories using your function
         settings.categories_data = get_categories_data(db)
@@ -41,10 +43,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
-app = FastAPI(lifespan=lifespan)
 
 # Include routers - each with their own prefix
-app.include_router(auth.router)
+app.include_router(auth.router, prefix="/auth")
 app.include_router(users.router, tags=["users"])
 app.include_router(receipts.router, prefix="/receipts", tags=["receipts"])
 app.include_router(categories.router, prefix="/categories",
@@ -62,4 +63,6 @@ async def get_index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -4,8 +4,8 @@ from typing import Annotated, Optional, List, Union, Literal, Dict
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import declarative_base
 import uuid
-from database import Base
 from pydantic import BaseModel, StringConstraints, EmailStr, SecretStr, Field
 from typing_extensions import TypedDict
 from datetime import datetime, date
@@ -13,7 +13,7 @@ import decimal
 import json
 
 # DB MODELS
-
+Base = declarative_base()
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -176,7 +176,7 @@ class Item(Base):
         if include_relationships:
             # Include category objects
             if self.categoria_rel:
-                result["categoria"] = self.categoria_rel.nombre
+                result["categoria_id"] = self.categoria_rel.nombre
                 result["categoria_obj"] = self.categoria_rel.to_dict()
 
             if self.sub_categoria_rel:
@@ -433,22 +433,22 @@ class TicketDataInput(BaseModel):
 
 
 class ItemData(BaseModel):
-    id: Optional[str]
-    receipt_id: Optional[str]
-    nombre: Optional[str]
-    precio: Optional[float]
-    cantidad: Optional[int]
-    categoria_id: Optional[str]
-    sub_categoria_id: Optional[str]
+    id: Optional[str] = None
+    receipt_id: Optional[str] = None
+    nombre: Optional[str] = None
+    precio: Optional[float] = 0.0
+    cantidad: Optional[int] = 0
+    categoria_id: Optional[str] = None
+    sub_categoria_id: Optional[str] = None
     operation: Union[Literal['create', 'update', 'delete'], None] = None
 
 
-class TicketData(TypedDict):
-    id: Optional[str]
+class TicketData(BaseModel):
+    id: Optional[str] = None
     nombre_tienda: str
-    total: float
+    total: float = 0.0
     usuario_id: str | None = None
-    items: List[ItemData]
+    items: List[ItemData] = []
 
     @staticmethod
     def from_ticket(ticket: Ticket):
@@ -463,8 +463,8 @@ class TicketData(TypedDict):
                 nombre=item.nombre,
                 precio=float(item.precio),
                 cantidad=item.cantidad,
-                categoria=str(item.categoria_id),
-                sub_categoria=str(item.sub_categoria_id),
+                categoria_id=str(item.categoria_id),
+                sub_categoria_id=str(item.sub_categoria_id),
                 operation=None
             ) for item in ticket.items]
         )

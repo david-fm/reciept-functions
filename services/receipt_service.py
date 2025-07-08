@@ -24,39 +24,38 @@ def validate_ticket_data(ticket_data: TicketData) -> List[str]:
     errors = []
 
     # Validate required fields
-    if not ticket_data.get("nombre_tienda"):
+    if not ticket_data.nombre_tienda:
         errors.append("Store name is required")
 
     # Validate numeric fields
     try:
-        total = decimal.Decimal(str(ticket_data.get("total", 0)))
+        total = decimal.Decimal(str(ticket_data.total))
         if total < 0:
             errors.append("Total cannot be negative")
     except (decimal.InvalidOperation, TypeError):
         errors.append("Total must be a valid number")
 
     # Validate items if present
-    if "items" in ticket_data and ticket_data["items"]:
-        for i, item in enumerate(ticket_data["items"]):
-            # Validate item name
-            if not item.get("nombre"):
-                errors.append(f"Item {i+1}: Name is required")
+    for i, item in enumerate(ticket_data.items):
+        # Validate item name
+        if not item.nombre:
+            errors.append(f"Item {i+1}: Name is required")
 
-            # Validate price
-            try:
-                price = decimal.Decimal(str(item.get("precio", 0)))
-                if price < 0:
-                    errors.append(f"Item {i+1}: Price cannot be negative")
-            except (decimal.InvalidOperation, TypeError):
-                errors.append(f"Item {i+1}: Price must be a valid number")
+        # Validate price
+        try:
+            price = decimal.Decimal(str(item.precio))
+            if price < 0:
+                errors.append(f"Item {i+1}: Price cannot be negative")
+        except (decimal.InvalidOperation, TypeError):
+            errors.append(f"Item {i+1}: Price must be a valid number")
 
-            # Validate quantity
-            try:
-                qty = int(item.get("cantidad", 0))
-                if qty <= 0:
-                    errors.append(f"Item {i+1}: Quantity must be positive")
-            except (ValueError, TypeError):
-                errors.append(f"Item {i+1}: Quantity must be a valid integer")
+        # Validate quantity
+        try:
+            qty = int(item.cantidad)
+            if qty <= 0:
+                errors.append(f"Item {i+1}: Quantity must be positive")
+        except (ValueError, TypeError):
+            errors.append(f"Item {i+1}: Quantity must be a valid integer")
 
     return errors
 
@@ -65,14 +64,14 @@ def classify_products(ticket_data: TicketData):
     """
     Classify products in the ticket data
     """
-    for item in ticket_data["items"]:
+    for item in ticket_data.items:
         classification: ClassifierState = classifier.invoke({
-            "product": item["nombre"],
+            "product": item.nombre,
             "available_categories": settings.categories_data
         })
 
-        item["categoria"] = classification["category"]
-        item["sub_categoria"] = classification["subcategory"]
+        item.categoria_id = classification["category"]
+        item.sub_categoria_id = classification["subcategory"]
 
 
 def get_tickets(
@@ -137,8 +136,8 @@ def create_ticket(
         classify_products(ticket_data)
         # Start transaction
         new_ticket = Ticket(
-            nombre_tienda=ticket_data["nombre_tienda"],
-            total=ticket_data["total"],
+            nombre_tienda=ticket_data.nombre_tienda,
+            total=ticket_data.total,
             usuario_id=user_id,
             created_at=datetime.now(timezone.utc),
             modified_at=datetime.now(timezone.utc)
@@ -147,19 +146,19 @@ def create_ticket(
         db.add(new_ticket)
         db.flush()  # Get ID but don't commit yet
 
-        if "items" in ticket_data and ticket_data["items"]:
-            for item_data in ticket_data["items"]:
-                new_item = Item(
-                    nombre=item_data["nombre"],
-                    precio=item_data["precio"],
-                    cantidad=item_data["cantidad"],
-                    receipt_id=new_ticket.id,
-                    categoria_id=db.query(Categoria).filter(
-                        Categoria.nombre == item_data.get("categoria")).first().id,
-                    sub_categoria_id=db.query(Categoria).filter(
-                        Categoria.nombre == item_data.get("sub_categoria")).first().id
-                )
-                db.add(new_item)
+        
+        for item_data in ticket_data.items:
+            new_item = Item(
+                nombre=item_data.nombre,
+                precio=item_data.precio,
+                cantidad=item_data.cantidad,
+                receipt_id=new_ticket.id,
+                categoria_id=db.query(Categoria).filter(
+                    Categoria.nombre == item_data.categoria_id).first().id,
+                sub_categoria_id=db.query(Categoria).filter(
+                    Categoria.nombre == item_data.sub_categoria_id).first().id
+            )
+            db.add(new_item)
 
         db.commit()
         db.refresh(new_ticket)
@@ -211,8 +210,8 @@ def update_items(
 ) -> None:
     for item_data in items_data:
         item = db.query(Item).filter(Item.id == item_data["id"]).first()
-        print(f"Item Subcategory: {item.sub_categoria_rel.nombre}")
-        print(f"Item Subcategory ID: {item.sub_categoria_id}")
+        # print(f"Item Subcategory: {item.sub_categoria_rel.nombre}")
+        # print(f"Item Subcategory ID: {item.sub_categoria_id}")
         if item:
             item.nombre = item_data["nombre"]
             item.precio = item_data["precio"]
@@ -221,7 +220,7 @@ def update_items(
                 item.categoria_id = item_data["categoria_id"]
             if "sub_categoria_id" in item_data:
                 item.sub_categoria_id = item_data["sub_categoria_id"]
-                print(f"Item Subcategory ID: {item.sub_categoria_id}")
+                # print(f"Item Subcategory ID: {item.sub_categoria_id}")
     if commit:
         db.commit()
 
@@ -266,7 +265,7 @@ def update_ticket(
     try:
         # Begin transaction
         ticket = db.query(Ticket).filter(
-            Ticket.id == ticket_data["id"],
+            Ticket.id == ticket_data.id,
             Ticket.usuario_id == user_id
         ).first()
 
@@ -274,17 +273,17 @@ def update_ticket(
             raise HTTPException(
                 status_code=404, detail="Receipt not found or access denied")
 
-        ticket.nombre_tienda = ticket_data["nombre_tienda"]
-        ticket.total = ticket_data["total"]
+        ticket.nombre_tienda = ticket_data.nombre_tienda
+        ticket.total = ticket_data.total
         ticket.modified_at = datetime.now(timezone.utc)
-        items = ticket_data.get("items", [])
+        items = ticket_data.items
 
         items_to_create = [
-            item for item in items if item.get("operation") == "create"]
+            item for item in items if item.operation == "create"]
         items_to_update = [
-            item for item in items if item.get("operation") == "update"]
+            item for item in items if item.operation == "update"]
         items_to_delete = [
-            item for item in items if item.get("operation") == "delete"]
+            item for item in items if item.operation == "delete"]
 
         # Create new items
         create_items(db, items_to_create, commit=False)
