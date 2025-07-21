@@ -4,6 +4,7 @@ from fastapi import Depends, status, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 import stripe
+import traceback
 
 from api.dependencies import get_current_user
 from models import Usuario
@@ -18,82 +19,49 @@ router = APIRouter()
 async def has_payed(user: Annotated[Usuario, Depends(get_current_user)], db: Session = Depends(get_db)):
     """
     Check if a user has an active subscription and update their status accordingly.
-    Returns the subscription status and appropriate HTTP status code.
     """
     try:
-        # Get current subscriptions from Stripe
-        active_subscriptions = stripe.Subscription.list(
+        # 1. Get the user's active subscriptions from Stripe
+        subscriptions = stripe.Subscription.list(
             customer=user.customer_id,
             status='active',
             limit=1
         )
 
-        canceled_subscriptions = stripe.Subscription.list(
-            customer=user.customer_id,
-            status='canceled',
-            limit=1
-        )
+        active_sub = subscriptions.data[0] if subscriptions.data else None
 
-        # Case 1: User has active subscription in Stripe
-        if active_subscriptions and active_subscriptions.data:
-            active_sub = active_subscriptions.data[0]
-
-            # Update subscription_id if it has changed
-            if user.subscription_id != active_sub.id:
+        # 2. Case: User has an active subscription in Stripe
+        if active_sub:
+            # If user was marked as inactive in our DB, reactivate them.
+            if not user.active:
+                user.active = True
                 user.subscription_id = active_sub.id
                 db.commit()
 
-            # Activate user if they were inactive
-            if not user.active:
-                user.active = True
+            # Optional: If you want to show a specific message for subscriptions
+            # that will cancel soon, you can check the `cancel_at_period_end` flag.
+            if active_sub.cancel_at_period_end:
+                return {"status": "active", "message": "Subscription is active but will cancel at period end."}
+
+            return {"status": "active", "message": "Subscription is active."}
+
+        # 3. Case: User has no active subscription in Stripe
+        else:
+            # If user was marked as active in our DB, deactivate them.
+            if user.active:
+                user.active = False
+                # It's good practice to clear the old subscription ID
+                user.subscription_id = None
                 db.commit()
 
-            return {"status": "active", "message": "Subscription is active"}
-
-        # Case 2: User has canceled subscription that matches our record
-        elif canceled_subscriptions and canceled_subscriptions.data:
-            canceled_sub = canceled_subscriptions.data[0]
-
-            # Only deactivate if this is the subscription we were tracking
-            # and user is still marked as active
-            if user.active and user.subscription_id == canceled_sub.id:
-                # Check if the subscription period is still valid
-                if canceled_sub.current_period_end > int(datetime.now(timezone.utc).timestamp()):
-                    # Subscription period still valid despite cancellation
-                    return {"status": "active", "message": "Subscription is active until period end"}
-                else:
-                    # Subscription period has ended, deactivate user
-                    user.active = False
-                    db.commit()
-                    return JSONResponse(
-                        {"status": "inactive",
-                            "message": "Subscription period has ended"},
-                        status_code=status.HTTP_402_PAYMENT_REQUIRED
-                    )
-
-        # Case 3: No active subscription but user is marked active
-        if user.active and not active_subscriptions.data:
-            user.active = False
-            user.subscription_id = None
-            db.commit()
             return JSONResponse(
-                {"status": "inactive", "message": "No active subscription found"},
-                status_code=status.HTTP_402_PAYMENT_REQUIRED
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                content={"status": "inactive",
+                         "message": "No active subscription found."}
             )
-
-        # Case 4: User is already inactive and has no active subscription
-        if not user.active:
-            return JSONResponse(
-                {"status": "inactive", "message": "User is inactive"},
-                status_code=status.HTTP_402_PAYMENT_REQUIRED
-            )
-
-        # Fallback case
-        return {"status": "active" if user.active else "inactive",
-                "message": "Using cached status"}
 
     except stripe.error.StripeError as e:
-        print(f"Stripe error: {str(e)}")
+        print(f"Stripe error: {str(e)} - {traceback.format_exc()}")
         # If we can't connect to Stripe, default to the stored user status
         if user.active:
             return {"status": "active", "message": "Using cached status (Stripe unavailable)"}
@@ -104,7 +72,8 @@ async def has_payed(user: Annotated[Usuario, Depends(get_current_user)], db: Ses
                 status_code=status.HTTP_402_PAYMENT_REQUIRED
             )
     except Exception as e:
-        print(f"Subscription check error: {str(e)}")
+        print(f"Subscription check error: {str(e)} - {traceback.format_exc()}")
+        
         return JSONResponse(
             {"status": "error", "message": "Could not verify subscription status"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
