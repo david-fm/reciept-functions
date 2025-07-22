@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 import stripe
 import traceback
+import os
 
 from api.dependencies import get_current_user
 from models import Usuario
@@ -14,6 +15,10 @@ from core.config import settings
 
 router = APIRouter()
 
+
+@router.get("/key")
+async def get_key():
+    return JSONResponse({"publicKey": os.getenv("STRIPE_PUBLIC_KEY")})
 
 @router.get("/has-payed")
 async def has_payed(user: Annotated[Usuario, Depends(get_current_user)], db: Session = Depends(get_db)):
@@ -79,125 +84,204 @@ async def has_payed(user: Annotated[Usuario, Depends(get_current_user)], db: Ses
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-
 @router.post('/create-subscription')
 def create_subscription(user: Annotated[Usuario, Depends(get_current_user)], db: Session = Depends(get_db)):
     if user.active:
         return JSONResponse({"error": {'message': 'User already active'}}, 400)
 
     try:
-        # Check if user already has a valid subscription
+        subscription = None  # Initialize subscription to None
+
+        # --- Handle existing subscription ---
         if user.subscription_id:
-            # Retrieve existing subscription with expanded invoice and payment intent
             try:
+                # Always try to retrieve with full expansion to get the latest state
                 subscription = stripe.Subscription.retrieve(
                     id=user.subscription_id,
-                    expand=['latest_invoice.payment_intent'],
+                    expand=['latest_invoice.payment_intent',
+                            'latest_invoice.confirmation_secret'],
                 )
 
-                # Check subscription status
                 if subscription.status == 'active':
-                    # Subscription is already active
                     return JSONResponse({
                         "subscriptionId": user.subscription_id,
                         "status": "active"
                     })
 
-                # Handle problematic payment intents
+                # Check if there's an existing actionable payment intent or confirmation secret
+                # The 'latest_invoice' can be an ID, so ensure it's expanded before accessing attributes
                 if hasattr(subscription, 'latest_invoice') and subscription.latest_invoice:
-                    if hasattr(subscription.latest_invoice, 'payment_intent') and subscription.latest_invoice.payment_intent:
-                        payment_intent = subscription.latest_invoice.payment_intent
+                    # Prefer confirmation_secret for incomplete subscriptions
+                    if hasattr(subscription.latest_invoice, 'confirmation_secret') and \
+                       subscription.latest_invoice.confirmation_secret and \
+                       subscription.latest_invoice.confirmation_secret.client_secret:
 
-                        # Handle different payment intent statuses
+                        return JSONResponse({
+                            "subscriptionId": user.subscription_id,
+                            "clientSecret": subscription.latest_invoice.confirmation_secret.client_secret,
+                            "status": subscription.status
+                        })
+                    # Fallback to payment_intent if confirmation_secret is not available but payment_intent is
+                    elif hasattr(subscription.latest_invoice, 'payment_intent') and \
+                            subscription.latest_invoice.payment_intent and \
+                            subscription.latest_invoice.payment_intent.client_secret:
+
+                        payment_intent = subscription.latest_invoice.payment_intent
+                        # Handle problematic payment intents by re-modifying
                         if payment_intent.status in ['canceled', 'failed', 'requires_payment_method']:
-                            # Reset the subscription billing cycle to create a fresh invoice and payment intent
                             subscription = stripe.Subscription.modify(
                                 user.subscription_id,
                                 cancel_at_period_end=False,
                                 billing_cycle_anchor='now',
                                 proration_behavior='none',
-                                expand=['latest_invoice.payment_intent']
+                                # Re-expand
+                                expand=['latest_invoice.payment_intent',
+                                        'latest_invoice.confirmation_secret']
                             )
-                            payment_intent = subscription.latest_invoice.payment_intent
+                            # Re-fetch payment_intent/confirmation_secret after modification
+                            if hasattr(subscription, 'latest_invoice') and \
+                               (hasattr(subscription.latest_invoice, 'confirmation_secret') and subscription.latest_invoice.confirmation_secret and subscription.latest_invoice.confirmation_secret.client_secret):
+                                return JSONResponse({
+                                    "subscriptionId": user.subscription_id,
+                                    "clientSecret": subscription.latest_invoice.confirmation_secret.client_secret,
+                                    "status": subscription.status
+                                })
+                            elif hasattr(subscription.latest_invoice, 'payment_intent') and subscription.latest_invoice.payment_intent.client_secret:
+                                return JSONResponse({
+                                    "subscriptionId": user.subscription_id,
+                                    "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
+                                    "status": subscription.status
+                                })
+                            else:
+                                # If still no client_secret, cancel the problematic subscription to create a new one
+                                stripe.Subscription.modify(
+                                    user.subscription_id, cancel_at_period_end=True)
+                                user.subscription_id = None
+                                db.commit()  # This will cause a new subscription to be created below
+                                # Continue to the new subscription creation block
 
-                        # Return the client secret for payment processing
-                        return JSONResponse({
-                            "subscriptionId": user.subscription_id,
-                            "clientSecret": payment_intent.client_secret,
-                            "status": subscription.status
-                        })
+                    # If subscription is incomplete/past_due but no actionable client_secret found,
+                    # consider it problematic and proceed to create a new one.
+                    elif subscription.status in ['incomplete', 'past_due']:
+                        print(
+                            f"Existing incomplete/past_due subscription {user.subscription_id} has no actionable client secret. Attempting to re-create.")
+                        stripe.Subscription.modify(
+                            user.subscription_id, cancel_at_period_end=True)
+                        user.subscription_id = None
+                        db.commit()
 
-                # If we reached here, something is wrong with the subscription
-                # It's safer to create a new one (after canceling the problematic one)
-                stripe.Subscription.modify(
-                    user.subscription_id,
-                    cancel_at_period_end=True,
-                )
-                # Reset the subscription ID so we'll create a new one below
-                user.subscription_id = None
-                db.commit()
+                if user.subscription_id:  # If we haven't reset it due to problems
+                    # If we reached here, and subscription_id is still set,
+                    # it means the existing subscription is in a state we can't immediately action
+                    # (e.g., pending_update without a client_secret).
+                    # We'll return an informative message.
+                    return JSONResponse({
+                        "subscriptionId": user.subscription_id,
+                        "status": subscription.status,
+                        "message": "Existing subscription found but requires further action. Please check your Stripe account or try again."
+                        # 202 Accepted, indicates processing is ongoing or needs external action.
+                    }, 202)
 
             except stripe.error.StripeError as e:
-                # Handle case where subscription_id is invalid or deleted on Stripe
+                print(
+                    f"Stripe Error retrieving existing subscription {user.subscription_id}: {e}")
+                # If subscription_id is invalid or deleted, clear it to create a new one
                 user.subscription_id = None
                 db.commit()
                 # Continue to create a new subscription
 
-        # Create a new subscription if needed
-        # First check for any existing ones that might not be in our DB
-        existing_subscriptions = stripe.Subscription.list(
-            customer=user.customer_id,
-            status='active',
-            limit=1
-        )
-
-        if existing_subscriptions and existing_subscriptions.data:
-            # Use existing active subscription
-            subscription = existing_subscriptions.data[0]
-            subscription = stripe.Subscription.retrieve(
-                id=subscription.id,
-                expand=['latest_invoice.payment_intent']
+        # --- Logic for creating a new subscription if no valid one exists or previous was problematic ---
+        if not user.subscription_id:
+            # Check for existing active subscriptions that might not be in our DB (unlikely if DB is source of truth, but good for robustness)
+            existing_active_subscriptions = stripe.Subscription.list(
+                customer=user.customer_id,
+                status='active',
+                limit=1
             )
-            user.subscription_id = subscription.id
-            db.commit()
 
+            if existing_active_subscriptions and existing_active_subscriptions.data:
+                subscription = existing_active_subscriptions.data[0]
+                # Retrieve fully to ensure we have necessary details
+                subscription = stripe.Subscription.retrieve(
+                    id=subscription.id,
+                    expand=['latest_invoice.payment_intent',
+                            'latest_invoice.confirmation_secret']
+                )
+                user.subscription_id = subscription.id
+                db.commit()
+                print(
+                    f"Found and adopted existing active subscription: {subscription.id}")
+            else:
+                # Create a new subscription
+                subscription = stripe.Subscription.create(
+                    customer=user.customer_id,
+                    items=[{
+                        'price': settings.STRIPE_PRICE_ID,
+                    }],
+                    currency='eur',
+                    payment_behavior='default_incomplete',
+                    payment_settings={
+                        'save_default_payment_method': 'on_subscription'
+                    },
+                    # CRITICAL: Expand latest_invoice AND its confirmation_secret or payment_intent
+                    expand=['latest_invoice.payment_intent',
+                            'latest_invoice.confirmation_secret'],
+                )
+
+                user.subscription_id = subscription.id
+                db.commit()
+                print(f"Created new subscription: {subscription.id}")
+
+        # --- Final response handling ---
+        # Ensure subscription is not None before proceeding
+        if not subscription:
+            return JSONResponse({"error": {'message': "Subscription could not be created or retrieved after all attempts."}}, 500)
+
+        # Prioritize confirmation_secret for the client_secret
+        if hasattr(subscription, 'latest_invoice') and subscription.latest_invoice:
+            if hasattr(subscription.latest_invoice, 'confirmation_secret') and \
+               subscription.latest_invoice.confirmation_secret and \
+               subscription.latest_invoice.confirmation_secret.client_secret:
+                print(
+                    f"Returning clientSecret from latest_invoice.confirmation_secret for subscription {subscription.id}")
+                return JSONResponse({
+                    "subscriptionId": user.subscription_id,
+                    "clientSecret": subscription.latest_invoice.confirmation_secret.client_secret,
+                    "status": subscription.status
+                })
+            elif hasattr(subscription.latest_invoice, 'payment_intent') and \
+                    subscription.latest_invoice.payment_intent and \
+                    subscription.latest_invoice.payment_intent.client_secret:
+                # Fallback to payment_intent if confirmation_secret is not present but payment_intent is
+                print(
+                    f"Returning clientSecret from latest_invoice.payment_intent for subscription {subscription.id}")
+                return JSONResponse({
+                    "subscriptionId": user.subscription_id,
+                    "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
+                    "status": subscription.status
+                })
+            else:
+                # This case means latest_invoice exists, but neither confirmation_secret nor payment_intent
+                # had a client_secret. This is likely the "incomplete" scenario the frontend needs to handle.
+                print(
+                    f"Subscription {subscription.id} in status '{subscription.status}' has latest_invoice but no immediate client_secret for payment. Signaling action required.")
+                return JSONResponse({
+                    "subscriptionId": user.subscription_id,
+                    "status": subscription.status,
+                    "message": "Subscription created, but payment requires additional action. Please add a payment method or verify existing one."
+                }, 202)  # Use 202 Accepted, as subscription is created but payment needs action
         else:
-            # Check for and remove any canceled subscriptions
-            canceled_subscriptions = stripe.Subscription.list(
-                customer=user.customer_id,
-                status='canceled',
-                limit=5
-            )
+            # This case means latest_invoice itself is missing or not expanded correctly, which indicates a deeper issue
+            print(
+                f"Error: latest_invoice missing or not expanded for subscription {subscription.id}. Status: {subscription.status}")
+            return JSONResponse({"error": {'message': "Subscription created but invoice details are missing unexpectedly. Please try again or contact support."}}, 500)
 
-            # Create a new subscription
-            subscription = stripe.Subscription.create(
-                customer=user.customer_id,
-                items=[{
-                    'price': settings.PRICE_ID,
-                }],
-                currency='eur',
-                payment_behavior='default_incomplete',
-                payment_settings={
-                    'save_default_payment_method': 'on_subscription'
-                },
-                expand=['latest_invoice.payment_intent'],
-            )
-
-            user.subscription_id = subscription.id
-            db.commit()
-
-        # Get payment intent for client-side confirmation
-        payment_intent = subscription.latest_invoice.payment_intent
-
-        return JSONResponse({
-            "subscriptionId": user.subscription_id,
-            "clientSecret": payment_intent.client_secret,
-            "status": subscription.status
-        })
-
-    except Exception as e:
-        print(f"Error creating subscription: {str(e)}")
+    except stripe.error.StripeError as e:
+        print(f"Stripe Error in create_subscription: {str(e)}")
         return JSONResponse({"error": {'message': str(e)}}, 400)
+    except Exception as e:
+        print(f"Unexpected Error in create_subscription: {str(e)}")
+        return JSONResponse({"error": {'message': "An unexpected error occurred: " + str(e)}}, 500)
 
 
 @router.post('/cancel-subscription')
