@@ -24,7 +24,6 @@ from services.receipt_service import (
     get_items,
     get_tickets
 )
-from services.subscription_service import verify_subscription
 from services.quota_service import check_quota
 from services.receipt_processing import (
     file_to_receipt_data
@@ -43,13 +42,6 @@ async def get_receipts(
     background_tasks: BackgroundTasks = None
 ):
     """Get paginated list of receipts for the current user"""
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
 
     # Log the operation
     if background_tasks:
@@ -76,13 +68,6 @@ async def get_receipt_items(
     background_tasks: BackgroundTasks = None
 ):
     """Get items for a specific receipt, verifying ownership"""
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
 
     # Verify receipt exists and belongs to user
     ticket = db.query(Ticket).filter(
@@ -115,13 +100,6 @@ async def create_receipt(
     background_tasks: BackgroundTasks = None
 ):
     """Create a new receipt with items"""
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
 
     # Validate ticket data
     validation_errors = validate_ticket_data(ticket_data)
@@ -160,13 +138,7 @@ async def update_receipt(
     background_tasks: BackgroundTasks = None
 ):
     """Update an existing receipt and its items"""
-    is_active = await verify_subscription(user, db)
 
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
     ticket_data = ticket_data.model_dump()
     # Validate ticket data
     validation_errors = validate_ticket_data(ticket_data)
@@ -214,13 +186,6 @@ async def delete_receipt(
     background_tasks: BackgroundTasks = None
 ):
     """Delete a receipt and all its items, verifying ownership"""
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
 
     try:
         deleted = delete_ticket(db, user.id, receipt_id)
@@ -422,14 +387,6 @@ async def upload_receipt(
         user: Annotated[Usuario, Depends(get_current_active_user)],
         db: Session = Depends(get_db)):
 
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
-
     # Get file extension (lowercase)
     file_extension = file.filename.split('.')[-1].lower()
 
@@ -443,7 +400,7 @@ async def upload_receipt(
             status_code=400, detail="File must be a PDF, JPEG, or PNG")
 
     try:
-        
+
         ticket_data = await file_to_receipt_data(file, file_type, file_extension)
         # print(ticket_data)
         ticket = create_ticket(db, user.id, ticket_data)
@@ -466,13 +423,6 @@ async def export_receipt(
     background_tasks: BackgroundTasks = None
 ):
     """Export receipt data in CSV or JSON format"""
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
 
     # Verify receipt exists and belongs to user
     ticket = db.query(Ticket).filter(

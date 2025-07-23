@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from models import Usuario, Categoria, Item, Ticket, get_categories_data
 from database import get_db
 from api.dependencies import get_current_active_user, log_operation
-from services.subscription_service import verify_subscription
+from core.config import settings
 
 router = APIRouter()
 
@@ -34,13 +34,7 @@ async def get_category_stats(
         A list of categories with their statistics
     """
     # Verify subscription status
-    is_active = await verify_subscription(user, db)
 
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
 
     # Log the operation
     if background_tasks:
@@ -158,20 +152,10 @@ async def get_all_categories(
     db: Session = Depends(get_db)
 ):
     """Get all active categories with their subcategories"""
-    is_active = await verify_subscription(user, db)
-
-    if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Active subscription required"
-        )
-
-    # Since categories are already loaded globally, we can use that
-    global categories
-
     # If for some reason categories aren't loaded, get them
-    if not categories:
-        categories = get_categories_data(db)
+    if not settings.categories_data:
+        settings.categories_data = get_categories_data(db)
+    categories = settings.categories_data
 
     # Format the response
     return JSONResponse({

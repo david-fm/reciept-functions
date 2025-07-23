@@ -84,18 +84,24 @@ def clean_number(value: str) -> str:
 
 
 def clean_price(price: str) -> float:
-    if not price or price == "null":
-        return 0.0
+    try:
+        if not price or price == "null":
+            return 0.0
 
-    price = clean_number(price)
-    return float(price.replace(",", "."))
+        price = clean_number(price)
+        return float(price.replace(",", "."))
+    except ValueError:
+        return 0.0
 
 
 def clean_int(value: str) -> int:
-    if not value or value == "null":
+    try:
+        if not value or value == "null":
+            return 1
+        value = clean_number(value)
+        return int(value)
+    except ValueError:
         return 1
-    value = clean_number(value)
-    return int(value)
 
 
 async def file_to_receipt_data(

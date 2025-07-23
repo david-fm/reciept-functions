@@ -10,6 +10,8 @@ from core.security import oauth2_schema
 from database import get_db
 from core.config import settings
 from models import TokenData, Usuario
+from services.subscription_service import verify_subscription
+
 
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_schema)],
@@ -34,11 +36,23 @@ async def get_current_user(
         raise credentials_exception
     return user
 
+
 async def get_current_active_user(
-    current_user: Annotated[Usuario, Depends(get_current_user)]
+    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Session = Depends(get_db)  # Inject db here
 ):
-    if not current_user.active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+    # This ensures the subscription status is verified/updated *before*
+    # the active check or any further processing.
+    # If verify_subscription determines the user is inactive, it will
+    # set user.active to False in the database.
+    is_active = await verify_subscription(current_user, db)
+
+    if not is_active:
+        # Raise 402 if no active subscription, as per your endpoint's requirement
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Active subscription required"
+        )
     return current_user
 
 
